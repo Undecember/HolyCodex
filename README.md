@@ -24,3 +24,17 @@ This directory is a snapshot. Edit its templates to change future installations,
 The script does not install Codex, authenticate an account, or transfer credentials, sessions, skills, plugins, or trusted project paths. Existing destination trust entries remain intact. Referenced skills and model names require availability on the destination installation; `AGENTS.md` alone does not install skills or change the model of an already running session. Start a new Codex session after setup.
 
 To undo an installation over existing files, restore the backup paths printed by the script. For a fresh installation, remove only the files created by the script.
+
+## Parallel SDD skill
+
+The bundled `skills/parallel-sdd` skill inspects task dependencies, generates a dependency graph, and executes waves of independent tasks concurrently in isolated worktrees. For dependencies `A → C`, `B → C`, and `D → E`, the waves are `(A, B, D)` followed by `(C, E)`.
+
+Install the skill separately from `init.py`, running this command from this directory in Bash or PowerShell (use `py -3` on Windows):
+
+```sh
+python3 -c 'import os, pathlib, shutil; destination = pathlib.Path(os.environ.get("CODEX_HOME") or pathlib.Path.home() / ".codex").expanduser() / "skills" / "parallel-sdd"; shutil.copytree("skills/parallel-sdd", destination); print(destination)'
+```
+
+This command refuses to overwrite an existing skill directory. If replacing an installation, move the old directory to a backup outside the skills directory first. To uninstall, remove only the installed `parallel-sdd` directory.
+
+Invoke `$parallel-sdd` with an implementation plan. If it is not listed, start a new session. The skill is self-contained; the other Superpowers skills referenced by `AGENTS.md` are not bundled.
