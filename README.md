@@ -15,7 +15,9 @@ The script installs the bundled preferences and working instructions into `$CODE
 python3 init.py --codex-home /path/to/codex-home
 ```
 
-The bundled `config.toml` selects `gpt-6-astra`, low reasoning effort, the default service tier, `approval_policy = "never"`, and `sandbox_mode = "danger-full-access"`. These last two settings allow execution without tool approval prompts or filesystem sandbox restrictions. The bundled `AGENTS.md` adds your Git, release, documentation, model routing, verification, and plan approval conventions.
+The bundled `config.toml` selects `gpt-6-sol`, medium reasoning effort, the default service tier, `approval_policy = "never"`, and `sandbox_mode = "danger-full-access"`. These last two settings allow execution without tool approval prompts or filesystem sandbox restrictions. The bundled `AGENTS.md` adds your Git, release, documentation, model routing, verification, and plan approval conventions. Its routing policy uses GPT-6 Astra only when you explicitly request it.
+
+Running `python3 init.py` installs this worktree preference globally for the user, so it applies across projects in new Codex sessions. The worktree instructions default to `<project-root>/.worktrees/` in each repository and require Git to ignore that directory before use. This applies to agent-created Git worktrees; it does not configure the Codex app’s built-in worktree manager.
 
 Existing unrelated TOML settings are preserved. Existing files that change are backed up before replacement. The destination `AGENTS.md` is replaced as a whole with the bundled version; its previous contents are kept in a backup. Running the script again with the same settings makes no changes.
 
