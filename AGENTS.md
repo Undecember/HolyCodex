@@ -23,6 +23,9 @@
 - Keep development history on the development branch.
 - Create `feat/*` and `fix/*` branches from the development branch.
 - Prefer a separate Git worktree for work on `feat/*` and `fix/*` branches.
+- By default, create worktrees under `<project-root>/.worktrees/` (for example, `.worktrees/feat-my-task`), unless the user explicitly requests another location.
+- Resolve `<project-root>` to the repository's primary working tree, including when already inside a linked worktree; do not nest `.worktrees/` inside another worktree.
+- Before creating a worktree, ensure `/.worktrees/` is ignored in the primary working tree. Prefer the repository's existing ignore rule; otherwise add it to the repository-local Git exclude file and verify with `git check-ignore`.
 - Create `release/*` branches from the development branch.
 - Limit release branches to release preparation, including minor fixes, version updates, release notes, and related validation.
 
@@ -53,8 +56,9 @@
 ## Model selection
 
 - Follow the Global Agent Model Routing Policy below for model selection, reasoning effort, escalation, verification, and review. That policy takes precedence over conflicting conventions in this document.
-- Model names: Astra = `gpt-6-astra`; Terra = `gpt-5.6-terra`; Luna = `gpt-5.6-luna`.
-- Configure the root session to use Astra with `low` reasoning effort for orchestration. This is a configuration prerequisite; AGENTS.md cannot switch the running root model or reasoning effort.
+- Model names: Sol = `gpt-6-sol`; Terra = `gpt-5.6-terra`; Luna = `gpt-5.6-luna`; Astra = `gpt-6-astra`.
+- Configure the root session to use Sol with `medium` reasoning effort for orchestration. This is a configuration prerequisite; AGENTS.md cannot switch the running root model or reasoning effort.
+- Use Astra only when the user explicitly requests it. Do not route to Astra automatically for risk, complexity, review, or escalation.
 
 ## Subagent completion
 
@@ -90,7 +94,7 @@ Optimize for:
 Do NOT use the strongest model everywhere.
 
 Use:
-- **Astra** for orchestration, architecture, high-risk reasoning, escalation, and independent review.
+- **Sol** for orchestration, architecture, high-risk reasoning, escalation, and independent review.
 - **Terra** for serious implementation.
 - **Luna** for exploration, mechanical work, and well-specified low-risk implementation.
 - **Deterministic tools** for verification.
@@ -103,17 +107,17 @@ Use these defaults:
 
 | Role | Model | Reasoning |
 |---|---|---|
-| Root orchestrator | Astra | low |
-| Architecture / decomposition | Astra | low |
+| Root orchestrator | Sol | medium |
+| Architecture / decomposition | Sol | medium |
 | Repo scout | Luna | low/medium |
 | Dependency/test scout | Luna | low/medium |
 | Simple implementer | Luna | high |
 | Normal implementer | Terra | medium |
 | Complex implementer | Terra | high |
-| Critical/hard implementer | Astra | low |
+| Critical/hard implementer | Sol | medium |
 | Test generation | Luna high or Terra medium | adaptive |
-| Reviewer | Astra | low |
-| Critical-risk reviewer | Astra | medium |
+| Reviewer | Sol | medium |
+| Critical-risk reviewer | Sol | high |
 
 Do NOT use Luna `max` as the default implementer.
 
@@ -137,7 +141,7 @@ Do NOT increase reasoning effort when the real problem is insufficient model cap
 4. Prefer executable verification over model confidence.
 5. Review implementation independently.
 6. Escalate model capability after substantive failures.
-7. Avoid feeding Astra unnecessary repository context.
+7. Avoid feeding Sol unnecessary repository context.
 8. Use fresh reviewer context whenever practical.
 9. Treat security, irreversible state, migrations, concurrency, and large blast radius as high risk.
 10. Avoid unlimited agent/review loops.
@@ -192,9 +196,9 @@ Use Terra high when:
 - Regression risk is high.
 - The implementation strategy is mostly known but technically difficult.
 
-### Use Astra low
+### Use Sol medium
 
-Use Astra directly when implementation requires frontier-level reasoning, especially:
+Use Sol directly when implementation requires stronger reasoning, especially:
 - concurrency
 - distributed consistency
 - synchronization
@@ -210,7 +214,7 @@ Use Astra directly when implementation requires frontier-level reasoning, especi
 - unresolved architectural ambiguity
 - repeated Terra failure
 
-Do NOT use Astra for routine implementation except under the trivial-work exception in Section 20.
+Do NOT use Sol for routine implementation except under the trivial-work exception in Section 20.
 
 ---
 
@@ -230,7 +234,7 @@ if local + explicit + low-risk + mechanically verifiable:
 
                 elif critical correctness or security or concurrency or distributed state
                      or migration risk or destructive behavior or unresolved architecture:
-                         implement with Astra low
+                         implement with Sol medium
 ```
 
 When uncertain between adjacent tiers:
@@ -247,8 +251,8 @@ Default escalation path:
 Luna high
 -> Terra medium
 -> Terra high
--> Astra low
--> Astra medium only when justified
+-> Sol medium
+-> Sol high only when justified
 ```
 
 Escalate when:
@@ -314,7 +318,7 @@ Action:
 
 ```text
 stop implementation
-return to Astra orchestrator
+return to Sol orchestrator
 re-plan
 ```
 
@@ -322,7 +326,7 @@ re-plan
 
 ## 8. Orchestrator Responsibilities
 
-Astra low is the default root orchestrator.
+Sol medium is the default root orchestrator.
 
 The orchestrator MUST:
 - interpret the user request
@@ -367,9 +371,9 @@ Scout C: dependencies and callers
 Scout D: regression/security risks
 ```
 
-Pass Astra a compact evidence package, not the entire repository.
+Pass Sol a compact evidence package, not the entire repository.
 
-Astra context SHOULD contain only:
+Sol context SHOULD contain only:
 - task
 - acceptance criteria
 - relevant files/symbols
@@ -472,7 +476,7 @@ A reviewer saying "looks correct" is NOT sufficient evidence.
 
 ## 13. Reviewer
 
-Default reviewer: **Astra low**.
+Default reviewer: **Sol medium**.
 
 Use a fresh context when practical.
 
@@ -513,7 +517,7 @@ Do NOT block solely on aesthetics unless enforced by repository policy/tooling.
 
 ## 14. Critical Review
 
-Use Astra medium for review when changes involve:
+Use Sol high for review when changes involve:
 - authentication
 - authorization
 - payments
@@ -530,12 +534,12 @@ Use Astra medium for review when changes involve:
 - recovery logic
 - safety-critical business logic
 
-Also consider Astra medium when:
+Also consider Sol high when:
 - reviewer and implementer repeatedly disagree
 - a previous review missed a confirmed serious defect
 - business/operational impact is unusually high
 
-Do NOT use Astra medium routinely.
+Do NOT use Sol high routinely.
 
 ---
 
@@ -585,9 +589,9 @@ Treat model tier and reasoning effort as separate controls.
 Defaults:
 
 ```text
-Astra orchestrator       low
-Astra reviewer           low
-Astra critical reviewer  medium
+Sol orchestrator         medium
+Sol reviewer             medium
+Sol critical reviewer    high
 
 Luna scout               low/medium
 Luna implementer         high
@@ -647,8 +651,8 @@ Ignore normal cost-first routing when an incorrect result could cause:
 In high-risk work:
 - escalate earlier
 - verify more aggressively
-- use Astra for key implementation decisions
-- use Astra medium review where justified
+- use Sol for key implementation decisions
+- use Sol high review where justified
 - prefer correctness over inference cost
 
 ---
@@ -674,7 +678,7 @@ Luna high (or the current root under the exception below)
 
 When all fast-path conditions above hold and delegation would cost more than completing and verifying the task locally, the current root may perform the work directly. This exception takes precedence over routine implementation routing and cost prohibitions elsewhere in this policy. It does not waive deterministic verification or apply to non-trivial or high-risk work.
 
-Astra review is optional for purely mechanical changes.
+Sol review is optional for purely mechanical changes.
 
 ---
 
@@ -683,24 +687,24 @@ Astra review is optional for purely mechanical changes.
 For normal non-trivial work:
 
 ```text
-1. Astra low
+1. Sol medium
    Interpret task, classify risk/complexity.
 
    2. Luna low/medium
       Scout relevant files, tests, dependencies, patterns.
 
-      3. Astra low
+      3. Sol medium
          Create task contract and implementation plan.
 
          4. Route implementation:
             simple   -> Luna high
                normal   -> Terra medium
                   complex  -> Terra high
-                     critical -> Astra low
+                     critical -> Sol medium
 
                      5. Run deterministic verification.
 
-                     6. Astra low
+                     6. Sol medium
                         Review independently in fresh context.
 
                         7. If defects:
@@ -720,7 +724,7 @@ When no special rule applies:
 
 ```text
 ORCHESTRATE
-Astra low
+Sol medium
 
 EXPLORE
 Luna low/medium
@@ -729,19 +733,19 @@ IMPLEMENT
 simple   -> Luna high
 normal   -> Terra medium
 complex  -> Terra high
-critical -> Astra low
+critical -> Sol medium
 
 VERIFY
 deterministic tools
 
 REVIEW
-Astra low
+Sol medium
 
 CRITICAL REVIEW
-Astra medium
+Sol high
 
 ESCALATE
-Luna -> Terra medium -> Terra high -> Astra low
+Luna -> Terra medium -> Terra high -> Sol medium
 ```
 
 ---

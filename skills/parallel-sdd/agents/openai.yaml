@@ -1,0 +1,3 @@
+interface:
+  display_name: "Parallel SDD"
+  short_description: "Execute plan tasks in isolated parallel worktrees"
