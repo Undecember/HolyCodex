@@ -60,6 +60,24 @@
 - Configure the root session to use Sol with `medium` reasoning effort for orchestration. This is a configuration prerequisite; AGENTS.md cannot switch the running root model or reasoning effort.
 - Use Astra with `low` reasoning effort only for the architectural escalation and critical-review cases defined below. Sol remains the root orchestrator and receives Astra's findings.
 
+## Subagent progress reporting
+
+- Before every subagent spawn, announce its task or role, exact requested model identifier, and reasoning effort in a concise user-visible progress message.
+- After a successful spawn, record the returned agent ID or task name, task description, requested model, and reasoning effort in session context. Record runtime-confirmed settings separately when the tool exposes them.
+- Before every wait for subagents, show each outstanding agent's task or role, model identifier, and reasoning effort. When several agents are outstanding, group them in one concise message while keeping each agent identifiable.
+- After a wait wakes or times out, include those same details in the required status update for outstanding agents.
+- Distinguish requested settings from runtime-confirmed settings. Label unconfirmed settings as requested; a successful spawn alone does not prove which model executed the task. If settings are unavailable, say so instead of inferring them from the role or policy defaults.
+- Report spawn failures, fallbacks, and model or reasoning-effort changes explicitly. Update the recorded assignment and use it in subsequent wait messages; never announce an agent as running if its spawn failed.
+- These rules govern assistant progress messages; they do not configure model labels in the client's built-in subagent cards.
+
+Example messages when runtime settings have not been confirmed:
+
+```text
+Spawning implementer — requested gpt-6-luna · max — update installer
+Waiting for implementer — requested gpt-6-luna · max — update installer
+Spawning reviewer — requested gpt-6.1-sol · medium — review changes
+```
+
 ## Subagent completion
 
 - Never send a final response while a subagent whose result is required for the current task is still active.
