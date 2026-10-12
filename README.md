@@ -17,7 +17,7 @@ python3 init.py --codex-home /path/to/codex-home
 
 The bundled `config.toml` selects `gpt-6.1-sol`, medium reasoning effort, the default service tier, `approval_policy = "never"`, and `sandbox_mode = "danger-full-access"`. These last two settings allow execution without tool approval prompts or filesystem sandbox restrictions. The bundled `AGENTS.md` adds your Git, release, documentation, model routing, verification, and plan approval conventions.
 
-The routing policy uses `gpt-6-luna` with max reasoning effort for scouting, simple and normal implementation, and routine and integration test generation. It uses `gpt-6.1-sol` with medium reasoning effort for orchestration, architecture, complex or high-risk implementation, and independent review. It permits `gpt-6-astra` with low reasoning effort for defined architectural escalation and critical-review cases. Multi-file scope alone does not trigger Sol; escalation follows Luna max → Sol medium → Astra low when substantive failures or new risks justify it. Deterministic checks and independent review remain required, with a fast-path exception for trivial mechanical work.
+The routing policy uses `gpt-6-luna` with max reasoning effort for scouting, the first implementation attempt on every task (including complex and high-risk work), localized repairs, and routine and integration test generation. `gpt-6.1-sol` with medium reasoning effort handles orchestration, architecture, independent review, and implementation retries when review finds a material quality shortfall or conceptual capability gap. `gpt-6-astra` with low reasoning effort handles defined architectural escalation and critical review; high-risk work keeps Sol's architecture and safety guidance and requires Astra review before consequential changes are applied. Deterministic verification and independent review follow implementation. If Luna is unavailable, the runtime limitation and any explicit fallback must be reported. Cost decisions consider the expected whole-task cost and risk; a price multiplier is not a retry quota.
 
 The bundled instructions require progress messages to show each subagent's task, exact model identifier, and reasoning effort when spawning and waiting. Unconfirmed settings are labeled as requested, and failures, fallbacks, or assignment changes are reported explicitly. This controls assistant messages; it does not configure model labels in the client's built-in subagent cards.
 
@@ -44,3 +44,12 @@ python3 -c 'import os, pathlib, shutil; destination = pathlib.Path(os.environ.ge
 This command refuses to overwrite an existing skill directory. If replacing an installation, move the old directory to a backup outside the skills directory first. To uninstall, remove only the installed `parallel-sdd` directory.
 
 Invoke `$parallel-sdd` with an implementation plan. If it is not listed, start a new session. The skill is self-contained; the other Superpowers skills referenced by `AGENTS.md` are not bundled.
+
+## Release notes
+
+### v0.2.1
+
+- Routes the first implementation attempt for every task, including complex and high-risk work, to `gpt-6-luna` at max reasoning effort. Verification and independent review guide follow-up: Luna handles localized revisions, while `gpt-6.1-sol` at medium reasoning effort retries when review finds a material quality or capability gap. High-risk work retains Sol-defined architecture and requires `gpt-6-astra` critical review before consequential changes.
+- Removes the root fast-path implementation bypass. Fast-path work still uses Luna first, deterministic verification, and independent review.
+- Bases routing on expected whole-task cost and risk, including retries, review, tool use, latency, and defect risk; price multipliers and turn counts are not retry quotas.
+- Requires reporting when Luna is unavailable and identifying any runtime fallback. The root session model and configuration, and installer behavior, are unchanged.

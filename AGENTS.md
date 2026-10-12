@@ -107,15 +107,17 @@ Apply these rules to all software-engineering tasks unless a higher-priority ins
 
 Optimize for:
 
-**lowest-cost reliable execution + strongest necessary judgment + deterministic verification + independent review**
+**lowest expected total cost + strong necessary judgment + deterministic verification + independent review**
 
-Do NOT use the strongest model everywhere.
+Every implementation task starts with a Luna `max` implementation attempt, including complex and high-risk tasks. Sol remains responsible for orchestration and architecture; the orchestrator chooses any repair or retry after verification and independent review.
 
 Use:
-- **Sol medium** for orchestration, architecture, complex or high-risk implementation, and independent review.
-- **Luna max** for exploration, simple and normal implementation, and routine and integration test generation.
+- **Sol medium** for orchestration, architecture, material quality or conceptual-capability retries, and independent review.
+- **Luna max** for exploration, the first implementation attempt on every task, localized repairs, and routine and integration test generation.
 - **Astra low** for architectural escalation and critical review.
 - **Deterministic tools** for verification.
+
+Compare expected cost across the whole task, including context and reasoning tokens, retries, review, tool use, latency, and defect risk. A price multiplier `r` compares the cost of comparable billed token work; turn count alone is not a cost measure, and `r` is not a quota of failed attempts. Do not treat a lower per-token price as proof of lower total task cost.
 
 ---
 
@@ -129,16 +131,15 @@ Use these defaults:
 | Architecture / decomposition | Sol | medium |
 | Repo scout | Luna | max |
 | Dependency/test scout | Luna | max |
-| Simple implementer | Luna | max |
-| Normal implementer | Luna | max |
-| Complex implementer | Sol | medium |
-| Critical/hard implementer | Sol | medium |
+| First implementation attempt, all tasks | Luna | max |
+| Localized repair or revision | Luna | max |
+| Material quality/capability retry | Sol | medium |
 | Routine/integration test generation | Luna | max |
 | Reviewer | Sol | medium |
 | Architectural escalation | Astra | low |
 | Critical-risk reviewer | Astra | low |
 
-Use Luna `max` as the default for simple and normal implementation. Multi-file scope alone does NOT trigger Sol.
+Use Luna `max` for the first implementation attempt on every task. Complexity, risk, or multi-file scope alone do NOT trigger an initial Sol implementation.
 
 Do NOT increase reasoning effort when the real problem is insufficient model capability.
 
@@ -148,18 +149,18 @@ Do NOT increase reasoning effort when the real problem is insufficient model cap
 - When using explicit overrides, use `fork_turns: "none"`; full-history forks do not accept these overrides. Provide the task contract and relevant evidence explicitly when needed.
 - Escalate by creating a new subagent at the required model and reasoning tier and handing over the current state, findings, and verification results. Do not assume an existing agent can change its model or reasoning effort in place.
 - Respect the runtime's available models, delegation rules, and concurrency limits. Report any limitation that prevents required routing; do not claim a model assignment that did not occur.
-- Treat cost optimization as a heuristic that includes agent startup, context transfer, verification, and review overhead. Apply the trivial-work exception in Section 20 before delegating.
+- Treat cost optimization as a whole-task estimate that includes agent startup, context transfer, reasoning, retries, verification, review, tool use, latency, and defect risk. The fast path in Section 20 may reduce setup overhead, but never bypasses Luna for the first implementation attempt or required verification and review.
 
 ---
 
 ## 3. Core Rules
 
 1. Use strong models for **judgment**, not high token volume.
-2. Start with the cheapest model likely to succeed reliably.
+2. Start every implementation task with Luna `max`; judge the full task cost and outcome after verification and review.
 3. Keep Sol as the root orchestrator; delegate bounded escalations to Astra and return its findings to Sol.
 4. Prefer executable verification over model confidence.
 5. Review implementation independently.
-6. Escalate model capability after substantive failures.
+6. Use Luna for localized, repairable gaps; use Sol for a retry when evidence shows a material quality shortfall or conceptual capability gap.
 7. Avoid feeding Sol unnecessary repository context.
 8. Use fresh reviewer context whenever practical.
 9. Treat security, irreversible state, migrations, concurrency, and large blast radius as high risk.
@@ -169,16 +170,11 @@ Do NOT increase reasoning effort when the real problem is insufficient model cap
 
 ## 4. Implementation Router
 
-Before implementation, classify the task.
+Before implementation, Sol classifies the task, establishes acceptance criteria, and provides architecture and constraints appropriate to its risk. Luna `max` makes the first implementation attempt for every task.
 
-### Use Luna max
+### First attempt: Luna max
 
-Use Luna for simple and normal implementation when:
-- Requirements and acceptance criteria can be made explicit.
-- Existing architecture and implementation patterns provide a workable approach.
-- The task may span multiple files/modules and require substantial codebase understanding.
-- Integration behavior matters, but does not involve difficult state transitions or critical correctness risks.
-- Regression risk can be managed with deterministic checks and independent review.
+Use Luna for the first implementation attempt on all work, including simple, normal, complex, and high-risk tasks. Sol's task contract should state the requirements, architecture, invariants, boundaries, and acceptance criteria needed to guide an isolated implementation and its review.
 
 Typical work:
 - renames
@@ -190,33 +186,18 @@ Typical work:
 - repetitive edits
 - local refactors
 - config changes
-- normal multi-file features
+- multi-file features of any complexity
+- high-risk changes implemented within Sol-defined boundaries
 - integration work within established architecture
 - routine and integration test generation
 
-This is the default model for normal implementation. Multi-file scope alone does NOT trigger Sol.
+Do not skip Luna's first attempt because of complexity, risk, or expected difficulty. High-risk work keeps Sol's architecture and safety guidance, uses a bounded and isolated implementation, and receives Astra `low` critical review before a change is applied to consequential state.
 
-### Use Sol medium
+### Sol medium implementation retry
 
-Use Sol directly when implementation requires stronger reasoning, especially:
-- difficult state transitions
-- technically difficult cross-module behavior or high regression risk
-- concurrency
-- distributed consistency
-- synchronization
-- transaction semantics
-- risky database migrations
-- authentication/authorization internals
-- security boundaries
-- destructive operations
-- hard algorithms
-- major architectural refactors
-- public API compatibility
-- recovery/consistency logic
-- unresolved architectural ambiguity
-- repeated substantive Luna failure
+After deterministic verification and independent review, the orchestrator chooses the next step from the evidence. Use Luna `max` for localized, repairable gaps. Use Sol `medium` for an implementation retry when the result is materially below task requirements or the findings show a conceptual capability gap that Luna is unlikely to repair reliably. Complexity or risk alone is not a reason to skip the Luna first attempt.
 
-Do NOT use Sol for routine implementation except under the trivial-work exception in Section 20.
+For high-risk work, Sol defines architecture and safety constraints before implementation. Keep consequential operations staged or isolated until the change passes deterministic verification and Astra `low` critical review.
 
 ### Use Astra low
 
@@ -225,7 +206,7 @@ Use Astra for bounded architectural escalation when:
 - Two substantive attempts with Sol fail because of conceptual or architectural errors.
 - A critical security, concurrency, migration, or recovery decision remains unresolved after Sol's analysis.
 
-Use Astra for critical review under Section 14. Pass a compact task contract, relevant evidence, and verification results; return findings to the Sol orchestrator.
+Use Astra for critical review under Section 14, including high-risk implementation review before consequential changes are applied. Pass a compact task contract, relevant evidence, and verification results; return findings to the Sol orchestrator.
 
 ---
 
@@ -234,42 +215,46 @@ Use Astra for critical review under Section 14. Pass a compact task contract, re
 Use this decision rule:
 
 ```text
-if difficult state transitions or difficult cross-module behavior or high regression risk
-   or critical correctness or security or concurrency or distributed state
-   or migration risk or destructive behavior or unresolved architecture:
-    implement with Sol medium
-else:
-    implement with Luna max, including normal multi-file work
+Sol medium: orchestrate, define task boundaries, architecture, invariants, and risk controls
+Luna max: make the first implementation attempt for every task
+deterministic tools: verify the implementation
+Sol medium / Astra low: independently review (Astra for critical-risk work)
 
-if Sol cannot resolve a conceptual or architectural problem:
-    escalate the bounded question to Astra low
-    return findings to Sol for implementation routing
+if findings identify a localized, repairable gap:
+    revise with Luna max
+else if findings show material quality shortfall or conceptual capability gap:
+    retry implementation with Sol medium
+if critical-risk work is ready to affect consequential state:
+    require Astra low critical review before applying it
+if Luna is unavailable:
+    report the runtime limitation and label any explicit fallback
 ```
 
 When uncertain between adjacent tiers:
-- Choose the cheaper tier if failure is cheap and strongly detectable.
-- Choose the stronger tier if failure is expensive, subtle, or hard to detect.
+- Keep Luna as the first implementation attempt; use Sol's architecture and constraints to make risky work reviewable.
+- After review, choose Luna repair or Sol retry based on the gap's scope and conceptual difficulty, considering expected full-task cost and defect risk.
 
 ---
 
 ## 6. Escalation
 
-Default escalation path:
+Default implementation and review path:
 
 ```text
-Luna max
--> Sol medium
--> Astra low for architectural escalation or critical review
+Sol medium orchestration and architecture
+-> Luna max first implementation attempt
+-> deterministic verification
+-> Sol medium independent review (Astra low for critical-risk review)
+-> Luna max for localized repair OR Sol medium for material quality/capability retry
+-> repeat verification and review for repaired or retried changes
 ```
 
 Escalate when:
-- Two substantive attempts fail at the same tier.
-- The model repeatedly misunderstands architecture.
-- The model cannot establish a stable root cause.
-- The task expands beyond its original architectural assumptions.
-- Reviewer findings expose a deeper design error.
-- New security, migration, concurrency, consistency, or compatibility risk appears.
-- Verification failures indicate conceptual rather than mechanical errors.
+- Independent review finds a material quality shortfall or a conceptual gap beyond a localized Luna repair.
+- Luna repeatedly misunderstands a stated invariant or architecture, and the defect is not a bounded correction.
+- The task expands beyond its original architectural assumptions; Sol must re-plan and define the new scope.
+- Reviewer findings expose a deeper design error or verification failures indicate a conceptual rather than mechanical issue.
+- New security, migration, concurrency, consistency, or compatibility risk appears; strengthen Sol's guidance and use Astra critical review without skipping the Luna first attempt.
 
 Do NOT escalate for:
 - formatting
@@ -278,9 +263,9 @@ Do NOT escalate for:
 - obvious one-line fixes
 - simple test expectation mistakes
 
-Repair mechanical failures at the current tier.
+Repair mechanical and localized failures with Luna `max`. Do not use a quoted price multiplier as a retry quota or require a fixed number of Luna failures before a Sol retry; make the decision from the verified gap, expected full-task cost, and defect risk.
 
-Keep reasoning effort at the assigned setting: Luna max, Sol medium, or Astra low. If Astra cannot resolve the issue, return the evidence to Sol for re-planning; do not repeat unbounded attempts or silently select another model/effort.
+Keep reasoning effort at the assigned setting: Luna max, Sol medium, or Astra low. If Luna cannot be assigned or is unavailable, report that runtime limitation before continuing and identify any Sol fallback explicitly; do not claim the required Luna attempt occurred. If Astra cannot resolve an issue, return the evidence to Sol for re-planning. Do not repeat unbounded attempts or silently select another model/effort.
 
 ---
 
@@ -299,7 +284,7 @@ Examples:
 Action:
 
 ```text
-repair at current model tier
+repair with Luna max when localized; otherwise have the orchestrator assess whether a Sol retry is warranted
 ```
 
 ### Understanding failure
@@ -313,7 +298,7 @@ Examples:
 Action:
 
 ```text
-escalate model capability
+use Luna max for a bounded, localized repair; use Sol medium for a retry when the result is materially below requirements or the gap exceeds Luna's conceptual capability
 ```
 
 ### Architectural failure
@@ -342,7 +327,7 @@ The orchestrator MUST:
 - identify acceptance criteria
 - identify constraints and non-goals
 - classify task complexity/risk
-- select implementation model
+- require Luna max for the first implementation attempt; select any retry only after verification and independent review
 - decide whether scouting is necessary
 - identify relevant verification
 - identify likely failure modes
@@ -559,17 +544,18 @@ For material reviewer findings:
 ```text
 review finding
 -> classify severity/root cause
--> choose appropriate implementer
+-> localized, repairable gap: Luna max repair
+-> material quality shortfall or conceptual capability gap: Sol medium implementation retry
 -> repair
 -> rerun deterministic verification
 -> review changed areas again
 ```
 
-Use the same implementer for localized fixes.
+Use Luna `max` for localized fixes. Use Sol `medium` only when the evidence supports a material quality or conceptual capability gap; task complexity or risk alone does not trigger the retry.
 
 Escalate if the defect resulted from deeper architectural misunderstanding.
 
-After two substantive failed repair cycles at one tier, escalate.
+Do not require a fixed number of repair cycles before routing to Sol. Reassess each verified result and use Sol when findings show a material quality shortfall or conceptual capability gap.
 
 Do NOT create unbounded review/repair loops.
 
@@ -599,20 +585,21 @@ Defaults:
 
 ```text
 Sol orchestrator          medium
-Sol complex implementer   medium
+Sol material-gap retry    medium
 Sol reviewer              medium
 
 Luna scout                max
-Luna normal implementer   max
+Luna first implementation max
+Luna localized repair     max
 Luna test generation      max
 
 Astra escalation          low
 Astra critical reviewer   low
 ```
 
-Use these fixed reasoning settings for this policy. Luna `max` is the default for simple and normal implementation; do not lower its effort merely because the work is routine.
+Use these fixed reasoning settings for this policy. Luna `max` is required for every first implementation attempt and localized repair; do not lower its effort merely because the work is routine.
 
-If capability is insufficient, escalate the model instead.
+If review shows a material quality shortfall or conceptual capability gap, the orchestrator may route an implementation retry to Sol `medium`. If Luna is unavailable, report the runtime fallback explicitly.
 
 ---
 
@@ -641,9 +628,9 @@ cheap models gather evidence
 
 ---
 
-## 19. High-Risk Override
+## 19. High-Risk Controls
 
-Ignore normal cost-first routing when an incorrect result could cause:
+Strengthen architecture guidance, isolation, verification, and review when an incorrect result could cause:
 - security compromise
 - privilege escalation
 - cross-tenant exposure
@@ -655,17 +642,17 @@ Ignore normal cost-first routing when an incorrect result could cause:
 - large-scale compatibility failure
 
 In high-risk work:
-- escalate earlier
+- Sol defines architecture, invariants, scope, and safety boundaries before implementation
+- Luna `max` makes the first implementation attempt within those boundaries
 - verify more aggressively
-- use Sol for key implementation decisions
-- use Astra low for critical review
+- use Astra `low` critical review before applying the change to consequential state
 - prefer correctness over inference cost
 
 ---
 
 ## 20. Fast Path
 
-Skip unnecessary orchestration/review overhead for trivial work only when ALL are true:
+Reduce setup overhead for trivial work only when ALL are true:
 - unambiguous
 - narrowly local
 - low risk
@@ -677,14 +664,14 @@ Skip unnecessary orchestration/review overhead for trivial work only when ALL ar
 Fast path:
 
 ```text
-Luna max (or the current root under the exception below)
--> tests/lint/typecheck/build as applicable
+Sol sets a brief task boundary when needed
+-> Luna max first implementation attempt
+-> targeted deterministic verification
+-> independent review
 -> complete
 ```
 
-When all fast-path conditions above hold and delegation would cost more than completing and verifying the task locally, the current root may perform the work directly. This exception takes precedence over routine implementation routing and cost prohibitions elsewhere in this policy. It does not waive deterministic verification or apply to non-trivial or high-risk work.
-
-Sol review is optional for purely mechanical changes.
+The fast path may omit separate scouting or a lengthy task contract when the change is obvious. It never lets the root implement first, bypasses Luna `max`, or waives deterministic verification and independent review.
 
 ---
 
@@ -695,29 +682,29 @@ For normal non-trivial work:
 ```text
 1. Sol medium
    Interpret task, classify risk/complexity.
+   For high-risk work, define architecture, invariants, isolation, and safety boundaries.
 
 2. Luna max
-   Scout relevant files, tests, dependencies, patterns.
+   Scout relevant files, tests, dependencies, and patterns when useful.
 
 3. Sol medium
    Create task contract and implementation plan.
 
-4. Route implementation:
-   simple   -> Luna max
-   normal   -> Luna max
-   complex  -> Sol medium
-   critical -> Sol medium
-   unresolved architectural escalation -> Astra low, findings returned to Sol
+4. Luna max
+   Make the first implementation attempt for every task.
 
 5. Run deterministic verification.
 
 6. Sol medium (Astra low for critical review)
    Review independently in fresh context.
 
-7. If defects:
-   Repair at the appropriate tier; escalate when needed.
+7. Orchestrator routes findings:
+   localized, repairable gap -> Luna max repair
+   material quality shortfall or conceptual capability gap -> Sol medium retry
+   high-risk change -> apply only after Astra low critical review is clear
 
 8. Run deterministic verification again after repairs.
+   Independently review repaired or retried changes.
 
 9. Finish only when acceptance criteria and verification pass.
 ```
@@ -736,10 +723,9 @@ EXPLORE
 Luna max
 
 IMPLEMENT
-simple   -> Luna max
-normal   -> Luna max
-complex  -> Sol medium
-critical -> Sol medium
+first attempt, all tasks -> Luna max
+localized repair -> Luna max
+material quality/capability retry -> Sol medium
 
 VERIFY
 deterministic tools
@@ -750,9 +736,11 @@ Sol medium
 CRITICAL REVIEW
 Astra low
 
-ESCALATE
-Luna max -> Sol medium -> Astra low
-Astra findings return to the Sol orchestrator
+AFTER REVIEW
+localized repairable gap -> Luna max
+material quality/capability gap -> Sol medium retry
+critical-risk review -> Astra low before consequential application
+Luna unavailable -> report and label runtime fallback
 ```
 
 ---
@@ -762,7 +750,7 @@ Astra findings return to the Sol orchestrator
 Always prefer:
 
 ```text
-cheapest reliable execution
+lowest expected total task cost
 +
 strongest necessary judgment
 +
@@ -771,7 +759,7 @@ deterministic verification
 independent review
 ```
 
-Prefer Luna max for simple and normal implementation, accounting for total execution overhead and the trivial-work exception in Section 20. Use Sol medium for complex or high-risk implementation and independent review; use Astra low for defined architectural escalation and critical-review cases.
+Every implementation task starts with Luna `max`, regardless of complexity or risk. Sol `medium` provides orchestration and architecture, reviews independently, and may retry implementation when review finds a material quality shortfall or conceptual capability gap. Luna `max` handles localized repairs. Astra `low` handles defined architectural escalation and critical-risk review before consequential changes are applied. Compare expected cost and risk over the complete task; do not interpret a price multiplier as a retry quota.
 
 Do not keep a weaker model on a task after evidence shows the task exceeds its capability.
 
