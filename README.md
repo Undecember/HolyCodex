@@ -15,7 +15,11 @@ The script installs the bundled preferences and working instructions into `$CODE
 python3 init.py --codex-home /path/to/codex-home
 ```
 
-The bundled `config.toml` selects `gpt-6-sol`, medium reasoning effort, the default service tier, `approval_policy = "never"`, and `sandbox_mode = "danger-full-access"`. These last two settings allow execution without tool approval prompts or filesystem sandbox restrictions. The bundled `AGENTS.md` adds your Git, release, documentation, model routing, verification, and plan approval conventions. Its routing policy uses GPT-6 Astra only when you explicitly request it.
+The bundled `config.toml` selects `gpt-6.1-sol`, medium reasoning effort, the default service tier, `approval_policy = "never"`, and `sandbox_mode = "danger-full-access"`. These last two settings allow execution without tool approval prompts or filesystem sandbox restrictions. The bundled `AGENTS.md` adds your Git, release, documentation, model routing, verification, and plan approval conventions.
+
+The routing policy uses `gpt-6-luna` with max reasoning effort for scouting, simple and normal implementation, and routine and integration test generation. It uses `gpt-6.1-sol` with medium reasoning effort for orchestration, architecture, complex or high-risk implementation, and independent review. It permits `gpt-6-astra` with low reasoning effort for defined architectural escalation and critical-review cases. Multi-file scope alone does not trigger Sol; escalation follows Luna max → Sol medium → Astra low when substantive failures or new risks justify it. Deterministic checks and independent review remain required, with a fast-path exception for trivial mechanical work.
+
+The bundled instructions require progress messages to show each subagent's task, exact model identifier, and reasoning effort when spawning and waiting. Unconfirmed settings are labeled as requested, and failures, fallbacks, or assignment changes are reported explicitly. This controls assistant messages; it does not configure model labels in the client's built-in subagent cards.
 
 Running `python3 init.py` installs this worktree preference globally for the user, so it applies across projects in new Codex sessions. The worktree instructions default to `<project-root>/.worktrees/` in each repository and require Git to ignore that directory before use. This applies to agent-created Git worktrees; it does not configure the Codex app’s built-in worktree manager.
 
