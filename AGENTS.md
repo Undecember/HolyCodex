@@ -56,9 +56,9 @@
 ## Model selection
 
 - Follow the Global Agent Model Routing Policy below for model selection, reasoning effort, escalation, verification, and review. That policy takes precedence over conflicting conventions in this document.
-- Model names: Sol = `gpt-6-sol`; Terra = `gpt-5.6-terra`; Luna = `gpt-5.6-luna`; Astra = `gpt-6-astra`.
+- Model names: Sol = `gpt-6.1-sol`; Luna = `gpt-6-luna`; Astra = `gpt-6-astra`.
 - Configure the root session to use Sol with `medium` reasoning effort for orchestration. This is a configuration prerequisite; AGENTS.md cannot switch the running root model or reasoning effort.
-- Use Astra only when the user explicitly requests it. Do not route to Astra automatically for risk, complexity, review, or escalation.
+- Use Astra with `low` reasoning effort only for the architectural escalation and critical-review cases defined below. Sol remains the root orchestrator and receives Astra's findings.
 
 ## Subagent completion
 
@@ -94,9 +94,9 @@ Optimize for:
 Do NOT use the strongest model everywhere.
 
 Use:
-- **Sol** for orchestration, architecture, high-risk reasoning, escalation, and independent review.
-- **Terra** for serious implementation.
-- **Luna** for exploration, mechanical work, and well-specified low-risk implementation.
+- **Sol medium** for orchestration, architecture, complex or high-risk implementation, and independent review.
+- **Luna max** for exploration, simple and normal implementation, and routine and integration test generation.
+- **Astra low** for architectural escalation and critical review.
 - **Deterministic tools** for verification.
 
 ---
@@ -109,24 +109,25 @@ Use these defaults:
 |---|---|---|
 | Root orchestrator | Sol | medium |
 | Architecture / decomposition | Sol | medium |
-| Repo scout | Luna | low/medium |
-| Dependency/test scout | Luna | low/medium |
-| Simple implementer | Luna | high |
-| Normal implementer | Terra | medium |
-| Complex implementer | Terra | high |
+| Repo scout | Luna | max |
+| Dependency/test scout | Luna | max |
+| Simple implementer | Luna | max |
+| Normal implementer | Luna | max |
+| Complex implementer | Sol | medium |
 | Critical/hard implementer | Sol | medium |
-| Test generation | Luna high or Terra medium | adaptive |
+| Routine/integration test generation | Luna | max |
 | Reviewer | Sol | medium |
-| Critical-risk reviewer | Sol | high |
+| Architectural escalation | Astra | low |
+| Critical-risk reviewer | Astra | low |
 
-Do NOT use Luna `max` as the default implementer.
+Use Luna `max` as the default for simple and normal implementation. Multi-file scope alone does NOT trigger Sol.
 
 Do NOT increase reasoning effort when the real problem is insufficient model capability.
 
 ### Runtime routing mechanics
 
 - Apply model and reasoning assignments by creating subagents with explicit `model` and `reasoning_effort` settings supported by the active runtime.
-- When using explicit overrides, use `fork_turns: "none"` or a limited number of turns; full-history forks do not accept these overrides. Provide the task contract and relevant evidence explicitly when needed.
+- When using explicit overrides, use `fork_turns: "none"`; full-history forks do not accept these overrides. Provide the task contract and relevant evidence explicitly when needed.
 - Escalate by creating a new subagent at the required model and reasoning tier and handing over the current state, findings, and verification results. Do not assume an existing agent can change its model or reasoning effort in place.
 - Respect the runtime's available models, delegation rules, and concurrency limits. Report any limitation that prevents required routing; do not claim a model assignment that did not occur.
 - Treat cost optimization as a heuristic that includes agent startup, context transfer, verification, and review overhead. Apply the trivial-work exception in Section 20 before delegating.
@@ -137,7 +138,7 @@ Do NOT increase reasoning effort when the real problem is insufficient model cap
 
 1. Use strong models for **judgment**, not high token volume.
 2. Start with the cheapest model likely to succeed reliably.
-3. Keep orchestration capability >= implementation capability.
+3. Keep Sol as the root orchestrator; delegate bounded escalations to Astra and return its findings to Sol.
 4. Prefer executable verification over model confidence.
 5. Review implementation independently.
 6. Escalate model capability after substantive failures.
@@ -152,15 +153,14 @@ Do NOT increase reasoning effort when the real problem is insufficient model cap
 
 Before implementation, classify the task.
 
-### Use Luna high
+### Use Luna max
 
-Use Luna when ALL or nearly all are true:
-- Task is explicit and narrowly scoped.
-- Relevant files are known or easy to identify.
-- Existing patterns can be followed mechanically.
-- Little architectural judgment is required.
-- Blast radius is small.
-- Failure is easy to detect deterministically.
+Use Luna for simple and normal implementation when:
+- Requirements and acceptance criteria can be made explicit.
+- Existing architecture and implementation patterns provide a workable approach.
+- The task may span multiple files/modules and require substantial codebase understanding.
+- Integration behavior matters, but does not involve difficult state transitions or critical correctness risks.
+- Regression risk can be managed with deterministic checks and independent review.
 
 Typical work:
 - renames
@@ -172,33 +172,17 @@ Typical work:
 - repetitive edits
 - local refactors
 - config changes
+- normal multi-file features
+- integration work within established architecture
+- routine and integration test generation
 
-### Use Terra medium
-
-Use Terra medium when:
-- Work spans multiple files/modules.
-- Significant codebase understanding is required.
-- Some ambiguity exists.
-- A feature touches several abstractions.
-- Integration behavior matters.
-- Regression risk is meaningful but not critical.
-
-This is the default model for serious implementation.
-
-### Use Terra high
-
-Use Terra high when:
-- State transitions are complex.
-- Refactoring is non-trivial.
-- Multiple interacting abstractions change.
-- Root cause requires substantial reasoning.
-- Cross-module behavior is difficult.
-- Regression risk is high.
-- The implementation strategy is mostly known but technically difficult.
+This is the default model for normal implementation. Multi-file scope alone does NOT trigger Sol.
 
 ### Use Sol medium
 
 Use Sol directly when implementation requires stronger reasoning, especially:
+- difficult state transitions
+- technically difficult cross-module behavior or high regression risk
 - concurrency
 - distributed consistency
 - synchronization
@@ -212,9 +196,18 @@ Use Sol directly when implementation requires stronger reasoning, especially:
 - public API compatibility
 - recovery/consistency logic
 - unresolved architectural ambiguity
-- repeated Terra failure
+- repeated substantive Luna failure
 
 Do NOT use Sol for routine implementation except under the trivial-work exception in Section 20.
+
+### Use Astra low
+
+Use Astra for bounded architectural escalation when:
+- Sol cannot resolve architectural ambiguity or establish a stable root cause.
+- Two substantive attempts with Sol fail because of conceptual or architectural errors.
+- A critical security, concurrency, migration, or recovery decision remains unresolved after Sol's analysis.
+
+Use Astra for critical review under Section 14. Pass a compact task contract, relevant evidence, and verification results; return findings to the Sol orchestrator.
 
 ---
 
@@ -223,18 +216,16 @@ Do NOT use Sol for routine implementation except under the trivial-work exceptio
 Use this decision rule:
 
 ```text
-if local + explicit + low-risk + mechanically verifiable:
-        implement with Luna high
+if difficult state transitions or difficult cross-module behavior or high regression risk
+   or critical correctness or security or concurrency or distributed state
+   or migration risk or destructive behavior or unresolved architecture:
+    implement with Sol medium
+else:
+    implement with Luna max, including normal multi-file work
 
-        elif multi-file or moderately ambiguous or substantial codebase reasoning:
-            implement with Terra medium
-
-            elif complex state or difficult cross-cutting behavior or high regression risk:
-                implement with Terra high
-
-                elif critical correctness or security or concurrency or distributed state
-                     or migration risk or destructive behavior or unresolved architecture:
-                         implement with Sol medium
+if Sol cannot resolve a conceptual or architectural problem:
+    escalate the bounded question to Astra low
+    return findings to Sol for implementation routing
 ```
 
 When uncertain between adjacent tiers:
@@ -248,11 +239,9 @@ When uncertain between adjacent tiers:
 Default escalation path:
 
 ```text
-Luna high
--> Terra medium
--> Terra high
+Luna max
 -> Sol medium
--> Sol high only when justified
+-> Astra low for architectural escalation or critical review
 ```
 
 Escalate when:
@@ -272,6 +261,8 @@ Do NOT escalate for:
 - simple test expectation mistakes
 
 Repair mechanical failures at the current tier.
+
+Keep reasoning effort at the assigned setting: Luna max, Sol medium, or Astra low. If Astra cannot resolve the issue, return the evidence to Sol for re-planning; do not repeat unbounded attempts or silently select another model/effort.
 
 ---
 
@@ -517,7 +508,7 @@ Do NOT block solely on aesthetics unless enforced by repository policy/tooling.
 
 ## 14. Critical Review
 
-Use Sol high for review when changes involve:
+Use Astra low for review when changes involve:
 - authentication
 - authorization
 - payments
@@ -534,12 +525,12 @@ Use Sol high for review when changes involve:
 - recovery logic
 - safety-critical business logic
 
-Also consider Sol high when:
+Also consider Astra low when:
 - reviewer and implementer repeatedly disagree
 - a previous review missed a confirmed serious defect
 - business/operational impact is unusually high
 
-Do NOT use Sol high routinely.
+Use Sol medium for routine review. Astra critical review returns findings to the Sol orchestrator.
 
 ---
 
@@ -589,22 +580,19 @@ Treat model tier and reasoning effort as separate controls.
 Defaults:
 
 ```text
-Sol orchestrator         medium
-Sol reviewer             medium
-Sol critical reviewer    high
+Sol orchestrator          medium
+Sol complex implementer   medium
+Sol reviewer              medium
 
-Luna scout               low/medium
-Luna implementer         high
+Luna scout                max
+Luna normal implementer   max
+Luna test generation      max
 
-Terra implementer        medium
-Terra complex work       high
+Astra escalation          low
+Astra critical reviewer   low
 ```
 
-Avoid `max` by default.
-
-Increase reasoning only when:
-- the model tier is already appropriate
-- more deliberation is likely to improve the result
+Use these fixed reasoning settings for this policy. Luna `max` is the default for simple and normal implementation; do not lower its effort merely because the work is routine.
 
 If capability is insufficient, escalate the model instead.
 
@@ -652,7 +640,7 @@ In high-risk work:
 - escalate earlier
 - verify more aggressively
 - use Sol for key implementation decisions
-- use Sol high review where justified
+- use Astra low for critical review
 - prefer correctness over inference cost
 
 ---
@@ -671,7 +659,7 @@ Skip unnecessary orchestration/review overhead for trivial work only when ALL ar
 Fast path:
 
 ```text
-Luna high (or the current root under the exception below)
+Luna max (or the current root under the exception below)
 -> tests/lint/typecheck/build as applicable
 -> complete
 ```
@@ -690,30 +678,30 @@ For normal non-trivial work:
 1. Sol medium
    Interpret task, classify risk/complexity.
 
-   2. Luna low/medium
-      Scout relevant files, tests, dependencies, patterns.
+2. Luna max
+   Scout relevant files, tests, dependencies, patterns.
 
-      3. Sol medium
-         Create task contract and implementation plan.
+3. Sol medium
+   Create task contract and implementation plan.
 
-         4. Route implementation:
-            simple   -> Luna high
-               normal   -> Terra medium
-                  complex  -> Terra high
-                     critical -> Sol medium
+4. Route implementation:
+   simple   -> Luna max
+   normal   -> Luna max
+   complex  -> Sol medium
+   critical -> Sol medium
+   unresolved architectural escalation -> Astra low, findings returned to Sol
 
-                     5. Run deterministic verification.
+5. Run deterministic verification.
 
-                     6. Sol medium
-                        Review independently in fresh context.
+6. Sol medium (Astra low for critical review)
+   Review independently in fresh context.
 
-                        7. If defects:
-                           repair at appropriate tier
-                              escalate when needed
+7. If defects:
+   Repair at the appropriate tier; escalate when needed.
 
-                              8. Run deterministic verification again.
+8. Run deterministic verification again after repairs.
 
-                              9. Finish only when acceptance criteria and verification pass.
+9. Finish only when acceptance criteria and verification pass.
 ```
 
 ---
@@ -727,12 +715,12 @@ ORCHESTRATE
 Sol medium
 
 EXPLORE
-Luna low/medium
+Luna max
 
 IMPLEMENT
-simple   -> Luna high
-normal   -> Terra medium
-complex  -> Terra high
+simple   -> Luna max
+normal   -> Luna max
+complex  -> Sol medium
 critical -> Sol medium
 
 VERIFY
@@ -742,10 +730,11 @@ REVIEW
 Sol medium
 
 CRITICAL REVIEW
-Sol high
+Astra low
 
 ESCALATE
-Luna -> Terra medium -> Terra high -> Sol medium
+Luna max -> Sol medium -> Astra low
+Astra findings return to the Sol orchestrator
 ```
 
 ---
@@ -764,7 +753,7 @@ deterministic verification
 independent review
 ```
 
-Prefer Luna or Terra for work they can reliably perform, accounting for total execution overhead and the trivial-work exception in Section 20.
+Prefer Luna max for simple and normal implementation, accounting for total execution overhead and the trivial-work exception in Section 20. Use Sol medium for complex or high-risk implementation and independent review; use Astra low for defined architectural escalation and critical-review cases.
 
 Do not keep a weaker model on a task after evidence shows the task exceeds its capability.
 
